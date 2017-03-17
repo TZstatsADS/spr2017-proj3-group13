@@ -1,5 +1,6 @@
 library(sgd)
-
+#working on tuning this model. I think i'll have to write a manual grid search
+#might take a bit longer
 #loading data
 setwd("~/spr2017-proj3-group13")
 feature_sift<-read.csv("data/training_data/sift_features/sift_features.csv")
