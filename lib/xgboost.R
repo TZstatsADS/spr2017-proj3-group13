@@ -74,7 +74,7 @@ cat("Time for training model=", tm_train[1], "s \n")
 
 
 # Test the selected feature
-selected<-read.csv("../data/feature_selected2.csv")
+selected<-read.csv("../output/feature_selected2.csv")
 dat2<-cbind(selected, labels)
 dat2<-dat2[,2:(ncol(selected)+1)]
 train.idx2<-sample(1:nrow(dat2), 0.8*nrow(dat2), replace = F)
