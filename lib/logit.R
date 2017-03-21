@@ -2,10 +2,10 @@ library(sgd)
 #working on tuning this model. I think i'll have to write a manual grid search
 #might take a bit longer
 #loading data
-setwd("~/spr2017-proj3-group13")
-feature_sift<-read.csv("data/training_data/sift_features/sift_features.csv")
+#setwd("~/spr2017-proj3-group13")
+feature_sift<-read.csv("data/sift_features.csv")
 sift_data<-t(feature_sift)
-label_train <- read.csv("data/training_data/labels.csv")
+label_train <- read.csv("data/labels.csv")
 
 
 #split data into training and testing
@@ -24,7 +24,7 @@ log_fit<- sgd(train_set, train_label,model='glm',model.control=binomial(link="lo
 #test on test set
 pred <- predict(log_fit, test_set,type = 'response')  
 pred <- ifelse(pred <= 0.5, 0, 1) 
-error<-mean(pred!=test.label)
+error<-mean(pred!=test_label)
 #log_fit <- sgd(train_set, train_label,model='glm',model.control=list(family="binomial",lambda2=0.001))
 
 
