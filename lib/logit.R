@@ -54,7 +54,7 @@ plot(cumsum(prop_pca), xlab = "Principal Component",
 N<-length(pca$sdev)-sum(cumsum(prop_pca)>0.8)
 train.data <- data.frame(Label = train[,5001], pca$x)[,1:N]
 
-pca_lasso_logistic <- cv.glmnet(as.matrix(train.data[,-1]),train.data$Label,alpha = 1,family = "binomial",type.measure='auc')
+pca_log_fit<- sgd(as.matrix(train.data[,-1]), train.data$Label, model='glm',model.control=binomial(link="logit"))
 
 
 #transform test into PCA
