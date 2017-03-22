@@ -6,7 +6,7 @@ label <- read.csv("labels.csv")
 
 #split data into training and testing
 
-set.seed(2)
+set.seed(3)
 index<-sample(1:2000,1600)
 train_set <- sift_feature[index,]
 test_set <- sift_feature[-index,]
