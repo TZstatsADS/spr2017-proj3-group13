@@ -54,8 +54,34 @@ xgb_cv <- function(dtrain) {
   return(xgb_best)
 }
 
-save(cv.result,file="~/Desktop/GR5243/training_data/cv_xgb_result.RData")
-save(xgb_best,file="~/Desktop/GR5243/training_data/xgb_best.RData")
+cvf<-function(X, y, K){
+  n <- length(y)
+  n.fold <- floor(n/K)
+  s <- sample(rep(1:K, c(rep(n.fold, K-1), n-(K-1)*n.fold)))  
+  cv.error <- rep(NA, K)
+  
+  for (i in 1:K){
+    train.data <- X[s != i,]
+    train.label <- y[s != i]
+    test.data <- X[s == i,]
+    test.label <- y[s == i]
+    
+    dtrain <- xgb.DMatrix(data = as.matrix(train.data), label = train.label)  
+    xgb_best<-xgb_cv(dtrain)
+    best_par<-list(objective = xgb_best$objective,
+                   max_depth = xgb_best$max_depth, 
+                   eta = xgb_best$eta, 
+                   nrounds = xgb_best$best_err_index 
+    )
+    xgb<-xgb_train(dtrain, best_par)
+    pred<-xgb_test(xgb, test)  
+    cv.error[i] <- pred[1] 
+  }		
+  return(cv.error)
+}
+
+#save(cv.result,file="~/Desktop/GR5243/training_data/cv_xgb_result.RData")
+#save(xgb_best,file="~/Desktop/GR5243/training_data/xgb_best.RData")
 
 dtrain <- xgb.DMatrix(data = as.matrix(train[,1:5000]), label = train[,5001])  
 xgb_best<-xgb_cv(dtrain)
@@ -71,6 +97,9 @@ pred<-xgb_test(xgb, test)
 tm_train <- system.time(xgb<-xgb_train(dtrain, best_par))
 cat("Time for training model=", tm_train[1], "s \n")
 # Time for training model= 22.994 s 
+
+cv.error<-cvf(train[,1:5000], train[,5001], 5) # 0.2825 0.3025 0.2750 0.3175 0.2750
+mean(sapply(cv.error,mean)) # Training Error Rate is 0.2905
 
 
 # Test the selected feature
@@ -91,3 +120,13 @@ xgb<-xgb_train(dtrain, best_par)
 pred<-xgb_test(xgb, test)
 # Training Error Rate is 0.28. Test Error Rate is 0.2625.
 
+# Test the PCA selected feature
+selected<-read.csv("../output/pca_features.csv")
+dat2<-cbind(selected, labels)
+dat2<-dat2[,2:(ncol(selected)+1)]
+train.idx2<-sample(1:nrow(dat2), 0.8*nrow(dat2), replace = F)
+train2<-dat2[train.idx2,]
+test2<-dat2[-train.idx2,]
+cv.error<-cvf(train2[,1:(ncol(train2)-1)], train2[,ncol(train2)], 5)
+mean(sapply(cv.error,mean))
+# Training Error Rate is 0.495.
