@@ -19,7 +19,7 @@ test <- sift_feature[-index,]
 
 # Train the model 
 
-bayes.fit<-naiveBayes(train[,-5001],train[,5001])
+bayes.fit<-naiveBayes(train[,-5001],as.factor(train[,5001]))
 
 # Test the model 
 prediction<-predict(bayes.fit,test[,-5001])
