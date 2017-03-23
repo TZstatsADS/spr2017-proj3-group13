@@ -25,13 +25,21 @@ train <- function(dat_train, label_train, par=NULL){
   } else {
     depth <- par$depth
   }
+
+  # tune the parameter 
+  # fit_gbm <- gbm.fit(x=dat_train, y=label_train,
+  #                    n.trees=100,
+  #                    distribution="bernoulli",
+  #                    interaction.depth=depth, 
+  #                    bag.fraction = 0.5,
+  #                    verbose=FALSE)
   fit_gbm <- gbm.fit(x=dat_train, y=label_train,
-                     n.trees=2000,
+                     n.trees=150,
                      distribution="bernoulli",
                      interaction.depth=depth, 
                      bag.fraction = 0.5,
                      verbose=FALSE)
   best_iter <- gbm.perf(fit_gbm, method="OOB", plot.it = FALSE)
-
   return(list(fit=fit_gbm, iter=best_iter))
-}
+} 
+ 
