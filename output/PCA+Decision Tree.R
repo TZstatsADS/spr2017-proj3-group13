@@ -1,8 +1,8 @@
 #setwd("../spr2017-proj3-group13-master")
 #getwd()
-features<-read.csv("/Users/wangzhishan/Desktop/spr2017-proj3-group13-master/data/training_data/sift_features/sift_features.csv")
+features<-read.csv("../data/sift_features.csv")
 #setwd("../training_data")
-labels<-read.csv("/Users/wangzhishan/Desktop/spr2017-proj3-group13-master/data/training_data/labels.csv")
+labels<-read.csv("../data/labels.csv")
 #dat<-cbind(t(features), labels)
 dat<-cbind(t(features))
 
