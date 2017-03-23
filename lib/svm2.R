@@ -8,14 +8,14 @@ library(kernlab)
 setwd("~/spr2017-proj3-group13")
 
 ### 5000 sifted features
-feature_sift<-read.csv("data/training_data/sift_features/sift_features.csv")
+feature_sift<-read.csv("../data/sift_features.csv")
 feature_new<-t(feature_sift)
 
 ### 577 pac features
-feature<-read.csv("output/pca_features.csv")
-feature_new<-feature
+### feature<-read.csv("../output/pca_features.csv")
+### feature_new<-feature
 
-label_train <- read.csv("data/training_data/labels.csv")
+label_train <- read.csv("../data/labels.csv")
 y <- label_train[1:2000,]
 data<-as.data.frame(cbind(feature_new,y))
 
@@ -61,7 +61,7 @@ for (k in 1:K)
   cv.error[k]<-min(error)
 }
 
-
+mean(cv.error)
 
 ### tune parameter
 system.time(svm_tune <- tune(svm, train.x=trainset[,-5001], train.y=trainset$y, scale = FALSE,
