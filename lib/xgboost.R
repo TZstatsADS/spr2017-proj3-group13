@@ -65,6 +65,7 @@ cvf<-function(X, y, K){
     train.label <- y[s != i]
     test.data <- X[s == i,]
     test.label <- y[s == i]
+    test<-cbind(test.data,test.label)
     
     dtrain <- xgb.DMatrix(data = as.matrix(train.data), label = train.label)  
     xgb_best<-xgb_cv(dtrain)
@@ -127,6 +128,6 @@ dat2<-dat2[,2:(ncol(selected)+1)]
 train.idx2<-sample(1:nrow(dat2), 0.8*nrow(dat2), replace = F)
 train2<-dat2[train.idx2,]
 test2<-dat2[-train.idx2,]
-cv.error<-cvf(train2[,1:(ncol(train2)-1)], train2[,ncol(train2)], 5)
+cv.error<-cvf(dat2[,1:(ncol(dat2)-1)], dat2[,ncol(dat2)], 5)
 mean(sapply(cv.error,mean))
-# Training Error Rate is 0.495.
+# Training Error Rate is 0.2495.
