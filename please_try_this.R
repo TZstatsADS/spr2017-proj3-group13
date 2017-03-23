@@ -25,6 +25,9 @@ for (i in 1:K){
   
   
   #train
+  #alpha = 1 for lasso
+  #if we change alpha to 0,it becomes ridge
+  #try both, ridge takes a while
   fit <- cv.glmnet(train.data,train.label,alpha = 1,family = "binomial",type.measure="class")
   
   #predict test error
