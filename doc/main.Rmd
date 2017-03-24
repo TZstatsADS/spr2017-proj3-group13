@@ -1,0 +1,264 @@
+---
+title: "main"
+output:
+  pdf_document: default
+  html_document: default
+date: "2017/3/12"
+---
+
+
+######################################
+######### baseline model #############
+######################################
+
+
+### Step 0: Load packages and data
+
+```{r}
+if(!require("gbm")){
+  install.packages("gbm")
+}
+if(!require("caret")){
+  install.packages("caret")
+}
+if(!require("rpart")){
+  install.packages("rpart")
+}
+if(!require("e1071")){
+  install.packages("e1071")
+}
+if(!require("kernlab")){
+  install.packages("kernlab")
+}
+
+library("gbm")
+```
+
+### all the code with "### for test" or "### test no need" is for convenience of running the features given in the class.If re-train the model, these can be ignore.
+```{r}
+dat_train<-read.csv("../data/sift_features.csv")
+dat_train<-t(dat_train)
+#dat_train1<-read.csv("../data/sift_features1.csv")   ###for test
+#dat_train1<-t(dat_train1)   ###for test
+```
+
+### Step 1: set up controls for evaluation experiments.
+
+In this chunk, ,we have a set of controls for the evaluation experiments. 
+
+```{r exp_setup}
+run.cv=TRUE # run cross-validation on the training set
+K <- 5  # number of CV folds
+run.feature.train=TRUE # process features for training set
+run.test=TRUE # run evaluation on an independent test set
+run.feature.test=TRUE # process featur  es for test set
+```
+
+Using cross-validation or independent test set evaluation, we compare the performance of different classifiers or classifiers with different specifications. In this example, we use GBM with different `depth`. In the following chunk, we list, in a vector, setups (in this case, `depth`) corresponding to models that we will compare. In your project, you maybe comparing very different classifiers. You can assign them numerical IDs and labels specific to your project. 
+
+```{r model_setup}
+model_values <- seq(3, 11, 2)   ### test no need
+model_labels = paste("GBM with depth =", model_values)   ### test no need
+```
+
+
+### Step 2: import training images class labels.
+
+
+```{r}
+label_train <- read.csv("../data/labels.csv")
+label_train <- as.numeric(label_train[1:dim(label_train)[1],])
+data<-as.data.frame(cbind(dat_train,label_train))
+#data1<-as.data.frame(cbind(dat_train1,label_train))   ###for test
+```
+
+```{r}
+### set train & test data
+index <- 1:nrow(data)  ### test no need
+trainindex <- sample(index, 0.8*nrow(data),replace=F)   ### test no need
+testset1 <- data[-trainindex,]   ### test no need
+trainset1 <-data[trainindex,]   ### test no need
+#testset1<-data1  ###for test
+#trainset1<-data   ###for test
+```
+
+
+### Step 3: Train a classification model with training images
+Call the train model and test model from library. 
+
+`train.R` and `test.R` should be wrappers for all your model training steps and your classification/prediction steps. 
++ `train.R`
+  + Input: a path that points to the training set features.
+  + Input: an R object of training sample labels.
+  + Output: an RData file that contains trained classifiers in the forms of R objects: models/settings/links to external trained configurations.
++ `test.R`
+  + Input: a path that points to the test set features.
+  + Input: an R object that contains a trained classifiers.
+  + Output: an R object of class label predictions on the test set. If there are multiple classifiers under evaluation, there should be multiple sets of label predictions. 
+```{r loadlib}
+source("../lib/train.R")
+source("../lib/test.R")
+```
+
+#### Step 4: Model selection with cross-validation
+
+* Do model selection by choosing among different values of training model parameters, that is, the interaction depth for GBM in this example. 
+```{r runcv, message=FALSE, warning=FALSE}
+### test no need
+source("../lib/cross_validation.R")
+
+if(run.cv){
+  err_cv <- array(dim=c(length(model_values), 2))
+  for(k in 1:length(model_values)){
+    cat("k=", k, "\n")
+    err_cv[k,] <- cv.function(trainset1[,1:5000], trainset1[,5001], model_values[k], K)
+  }
+  save(err_cv, file="../output/err_cv.RData")
+}
+```
+
+* Visualize cross-validation results.
+```{r cv_vis}
+### test no need
+err_cv[,1]
+mean(err_cv[,1])
+plot(model_values, err_cv[,1])
+```
+
+
+* Choose the "best" parameter value
+```{r best_model}
+### test no need
+model_best=model_values[1]
+if(run.cv){
+  model_best <- model_values[which.min(err_cv[,1])]
+}
+
+par_best <- list(depth=model_best)
+```
+
+
+* Train the model with the entire training set using the selected model (model parameter) via cross-validation.
+
+```{r final_train}
+#par_best <- list(depth=9)  ###for test
+tm_train=NA
+tm_train <- system.time(fit_train <- train(trainset1[,1:5000], trainset1[,5001], par_best))
+save(fit_train, file="../output/fit_train.RData")
+```
+
+
+### Step 5: Make prediction 
+Feed the final training model with the completely holdout testing data. 
+```{r test}
+tm_test=NA
+if(run.test){
+  tm_test <- system.time(pred_test <- test(fit_train, testset1[,1:5000]))
+  save(pred_test, file="../output/pred_test.RData")
+}
+sum(pred_test != testset1[,5001])/length(testset1[,5001])
+```
+
+Summarize Running Time
+
+Prediction performance matters, do does the running times for constructing features and for training the model, especially when the computation resource is limited.
+
+```{r}
+cat("Time for training model=", tm_train[1], "s \n")
+cat("Time for making prediction=", tm_test[1], "s \n")
+```
+
+
+######################################
+######### Advanced model #############
+######################################
+
+For the feature extraction part, we tried SIFT features to extract feature again. For the feature selction,we tried bag of words,LASSO,PCA to reduce dimension features.
+
+As for the models, we briefly tested several models with different feature extraction and selection combination,like gbm, SVM, Randomforest, Xgboost, logistic, NaiveBayes. From all of these primary models, we found PCA features combined with SVM model generally perform the best in every model.
+
+The following are the training procedure:
+
+### load data
+```{r}
+set.seed(340697)
+setwd("~/spr2017-proj3-group13")
+```
+
+### 300 pca features(run the lib-PCA2.R before doing this part,it's PCA2.R NOT PCA.R! )
+```{r}
+feature<-read.csv("../output/pca_features3.csv")
+feature_new<-feature
+
+###feature1<-read.csv("../output/pca_features_1.csv")  ### for test
+###feature_new1<-feature1  ### for test
+```
+
+### load label
+```{r}
+label_train <- read.csv("../data/labels.csv")
+y <- label_train[1:2000,]
+data<-as.data.frame(cbind(feature_new,y))
+###data1<-as.data.frame(cbind(feature_new1,y))  ### for test
+```
+
+### set apart train & test data
+
+```{r}
+index <- 1:nrow(data)   
+trainindex <- sample(index, 0.8*nrow(data),replace=F)
+testset1 <- data[-trainindex,]
+trainset1 <-data[trainindex,]
+tune<-F  ### for test
+#testset1<-data1   ### for test
+#trainset1<-data   ### for test
+```
+
+### tune parameter
+
+### you can run this part, otherwise the parameter will be set as 100 and 0.02.
+
+```{r}
+#tune<-T
+#result<-tune.svm2(trainset1)
+#cost2<-result[1]
+#gamma2<-result[2]
+```
+
+### train with svm
+```{r}
+if (tune==F)
+{
+  cost2<-100
+  gamma2<-0.02
+}
+source("../lib/train.R")
+source("../lib/test.R")
+#mymodel<-train.svm.cv(trainset1)
+
+tm_train=NA
+tm_train <- system.time(mymodel<-train.svm.cv(trainset1,cost2,gamma2))
+save(mymodel, file="../output/fit_train_advance.RData")
+
+# the cross validation part and tuning parameter part are in the train.R
+```
+
+### Feed the final training model with the completely holdout testing data. 
+
+```{r}
+tm_test=NA
+tm_test <- system.time(pred_test_advance <-test.svm(mymodel,testset1))
+save(pred_test_advance, file="../output/pred_test_advance.RData")
+error<-mean(pred_test_advance != testset1$y)
+# error rate
+error
+```
+
+### Summarize Running Time
+
+Prediction performance matters, do does the running times for constructing features and for training the model, especially when the computation resource is limited.
+
+```{r}
+cat("Time for training model=", tm_train[1], "s \n")
+cat("Time for making prediction=", tm_test[1], "s \n")
+```
