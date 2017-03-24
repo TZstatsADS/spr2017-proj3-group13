@@ -1,18 +1,22 @@
 
 #select 5000 features-------
-sift_feature<-read.csv("sift_features.csv")
+### load data
+setwd("~/spr2017-proj3-group13")
+
+### 5000 sifted features
+feature_sift<-read.csv("../data/sift_features.csv")
 sift_feature<-t(sift_feature)
 sift_feature <- data.matrix(sift_feature)
 label <- read.csv("labels.csv")
 
 #select bow features------------
 
-#sift_feature_bow <- read.csv("feature_selected2.csv") 
+#sift_feature_bow <-read.csv("../output/feature_selected2.csv") 
 #sift_feature_bow <- data.matrix(sift_feature_bow)[,-1]
 
 #select PCA features---------
 
-#sift_feature_pca <- read.csv("pca_features.csv") 
+#sift_feature_pca <- read.csv("../output/pca_features.csv")
 #sift_feature_pca <- sift_feature_pca[,-1]
 #sift_feature_pca <- data.matrix(sift_feature_pca)
 
