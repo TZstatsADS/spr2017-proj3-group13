@@ -1,69 +1,112 @@
-library(sgd)
+
+#select 5000 features-------
 sift_feature<-read.csv("sift_features.csv")
 sift_feature<-t(sift_feature)
+sift_feature <- data.matrix(sift_feature)
 label <- read.csv("labels.csv")
+
+#select bow features------------
+
+#sift_feature_bow <- read.csv("feature_selected2.csv") 
+#sift_feature_bow <- data.matrix(sift_feature_bow)[,-1]
+
+#select PCA features---------
+
+#sift_feature_pca <- read.csv("pca_features.csv") 
+#sift_feature_pca <- sift_feature_pca[,-1]
+#sift_feature_pca <- data.matrix(sift_feature_pca)
 
 
 #split data into training and testing
 
-set.seed(3)
-index<-sample(1:2000,1600)
-train_set <- sift_feature[index,]
-test_set <- sift_feature[-index,]
-train_label <- as.matrix(label[index,])
-test_label <- as.matrix(label[-index,])
+install.packages('glmnet')
+library("glmnet")
+install.packages('sgd')
+library("sgd")
 
+#cross validation function for lasso logistic regression-----
+cv.function <- function(X.train, y.train, K){
+  
+  n <- length(y.train)
+  n.fold <- floor(n/K)
+  s <- sample(rep(1:K, c(rep(n.fold, K-1), n-(K-1)*n.fold)))  
+  cv.error <- rep(NA, K)
+  train.error<- rep(NA, K)
+  diff<-rep(NA, K)
+  for (i in 1:K){
+    train.data <- X.train[s != i,]
+    train.label <- y.train[s != i]
+    test.data <- X.train[s == i,]
+    test.label <- y.train[s == i]
+    
+    #train model, tune for lambda parameter
+    fit <- cv.glmnet(as.matrix(train.data),train.label,alpha = 1,family = "binomial",type.measure='auc',lambda=10^(seq(-1,-5,-0.2)))
+    
+    #test error
+    pred <- predict(fit, test.data)  
+    pred <- predict(fit, test.data,type = "response",s='lambda.min')  
+    cv.error[i] <- mean(pred != test.label)  
+    
+    #training error (someone check if this logic is correct)
+    pred <- predict(fit, train.data,type = "response",s='lambda.min')  
+    pred<-ifelse(pred>0.5,1,0)
+    train.error[i] <- mean(pred != train.label)  
+    
+    diff[i] <- cv.error[i]-train.error[i]
+  }			
+  return(c(mean(cv.error),sd(cv.error),mean(diff),sd(diff)))
+  
+}
+#---------
+cv.function(sift_feature,as.matrix(label),5)
 
-#stochastic gradient descent logistic regression
-log_fit<- sgd(train_set, train_label,model='glm',model.control=binomial(link="logit"))
-
-#test on test set
-pred <- predict(log_fit, test_set,type = 'response')  
-pred <- ifelse(pred <= 0.5, 0, 1) 
-error<-mean(pred!=test_label)
-#log_fit <- sgd(train_set, train_label,model='glm',model.control=list(family="binomial",lambda2=0.001))
-
-
-
-
-
+#this is the same thing as the cross validation function, just taken out of the 
+#function format to better analyze
 
 install.packages('glmnet')
 library("glmnet")
 
-lasso_logistic<-cv.glmnet(as.matrix(train_set),train_label,alpha = 1,family = "binomial",type.measure='auc')
-pred_lasso_logistic<- predict(lasso_logistic,newx  = as.matrix(test_set),type = "response",s='lambda.min')
-pred_lasso_logistic<-ifelse(pred_lasso_logistic>0.5,1,0)
-error<-mean(pred_lasso_logistic!=test_label)
-error
+sift_feature <- read.csv("feature_selected2.csv")
+label <- read.csv("labels.csv")
 
+X.train =sift_feature
+y.train = as.matrix(label)
 
+K=5
 
+n <- length(y.train)
+n.fold <- floor(n/K)
+s <- sample(rep(1:K, c(rep(n.fold, K-1), n-(K-1)*n.fold)))  
+cv.error <- rep(NA, K)
+train.error<- rep(NA, K)
+diff<-rep(NA, K)
+for (i in 1:K){
+  print(i)
+  train.data <- X.train[s != i,]
+  train.label <- y.train[s != i]
+  test.data <- X.train[s == i,]
+  test.label <- y.train[s == i]
+  
+  #train the model---------
+  fit <- cv.glmnet(train.data,train.label,alpha = 1,family = "binomial",type.measure="class",lambda=10^(seq(-1,-5,-0.2)))
+  #fit <- sgd(train.data, train.label,model='glm',model.control=binomial(link="logit"))
+  
+  #error testing------------
+  #testing error
+  pred <- predict(fit, test.data,type = "response",s='lambda.min')  
+  #pred <- predict(fit, test.data,type = 'response')
+  pred<-ifelse(pred>0.5,1,0)
+  cv.error[i] <- mean(pred != test.label)  
+  
+  #training error
+  pred <- predict(fit, train.data,type = "response",s='lambda.min')  
+  #pred <- predict(fit, train.data,type = 'response')
+  pred<-ifelse(pred>0.5,1,0)
+  train.error[i] <- mean(pred != train.label)  
+  
+  diff[i] <- cv.error[i]-train.error[i]
+}			
 
-#pca 
-
-
-train.idx<-sample(1:nrow(sift_feature), 0.8*nrow(sift_feature), replace = F)
-train<-sift_feature[train.idx,]
-test<-sift_feature[-train.idx,]
-pca<-prcomp(train[,1:5000],center = T)
-prop_pca<-pca$sdev^2/sum(pca$sdev^2)
-plot(cumsum(prop_pca), xlab = "Principal Component",
-     ylab = "Cumulative Proportion of Variance Explained",
-     type = "b")
-N<-length(pca$sdev)-sum(cumsum(prop_pca)>0.8)
-train.data <- data.frame(Label = train[,5001], pca$x)[,1:N]
-
-pca_log_fit<- sgd(as.matrix(train.data[,-1]), train.data$Label, model='glm',model.control=binomial(link="logit"))
-
-
-#transform test into PCA
-test.data <- predict(pca, newdata = test[,-5001])
-test.data <- as.data.frame(test.data)
-
-#select the first 30 components
-test.data <- as.matrix(test.data[,1:N-1])
-pca_lasso_logistic_pred<-predict(pca_lasso_logistic, test.data)
-pca_lasso_logistic_pred<-ifelse(pca_lasso_logistic_pred>0.5,1,0)
-error<-mean(pca_lasso_logistic_pred!=test_label)
-error
+train.error
+cv.error
+diff
