@@ -131,3 +131,16 @@ test2<-dat2[-train.idx2,]
 cv.error<-cvf(dat2[,1:(ncol(dat2)-1)], dat2[,ncol(dat2)], 5)
 mean(sapply(cv.error,mean))
 # Training Error Rate is 0.2495.
+
+# Final version
+# Sift Features
+dtrain <- xgb.DMatrix(data = as.matrix(data[,1:(ncol(data)-1)]), label = data[,ncol(data)]) 
+tm_train <- system.time(xgb_best<-xgb_cv(dtrain))
+cat("Time for training model=", tm_train[1], "s \n")
+# Time for training model=  1747.893 s
+
+# PCA Features
+dtrain <- xgb.DMatrix(data = as.matrix(dat2[,1:(ncol(dat2)-1)]), label = dat2[,ncol(dat2)]) 
+tm_train <- system.time(xgb_best<-xgb_cv(dtrain))
+cat("Time for training model=", tm_train[1], "s \n")
+# Time for training model= 433.79 s 
